@@ -1,0 +1,243 @@
+{
+  "Patient Age": {
+    "type": "numeric",
+    "default": 7.0
+  },
+  "Genes in mother's side": {
+    "type": "categorical",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "default": "Yes"
+  },
+  "Inherited from father": {
+    "type": "categorical",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "default": "Yes"
+  },
+  "Maternal gene": {
+    "type": "categorical",
+    "options": [
+      "No",
+      "Yes"
+    ],
+    "default": "No"
+  },
+  "Paternal gene": {
+    "type": "categorical",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "default": "Yes"
+  },
+  "Blood cell count (mcL)": {
+    "type": "numeric",
+    "default": 4.900142077
+  },
+  "Mother's age": {
+    "type": "numeric",
+    "default": 35.0
+  },
+  "Father's age": {
+    "type": "numeric",
+    "default": 42.0
+  },
+  "Status": {
+    "type": "categorical",
+    "options": [
+      "Deceased",
+      "Alive"
+    ],
+    "default": "Deceased"
+  },
+  "Respiratory Rate (breaths/min)": {
+    "type": "categorical",
+    "options": [
+      "Normal (30-60)",
+      "Tachypnea"
+    ],
+    "default": "Normal (30-60)"
+  },
+  "Heart Rate (rates/min": {
+    "type": "categorical",
+    "options": [
+      "Tachycardia",
+      "Normal"
+    ],
+    "default": "Tachycardia"
+  },
+  "Test 1": {
+    "type": "numeric",
+    "default": 0.0
+  },
+  "Test 2": {
+    "type": "numeric",
+    "default": 0.0
+  },
+  "Test 3": {
+    "type": "numeric",
+    "default": 0.0
+  },
+  "Test 4": {
+    "type": "numeric",
+    "default": 1.0
+  },
+  "Test 5": {
+    "type": "numeric",
+    "default": 0.0
+  },
+  "Parental consent": {
+    "type": "categorical",
+    "options": [
+      "Yes"
+    ],
+    "default": "Yes"
+  },
+  "Follow-up": {
+    "type": "categorical",
+    "options": [
+      "Low",
+      "High"
+    ],
+    "default": "Low"
+  },
+  "Gender": {
+    "type": "categorical",
+    "options": [
+      "Ambiguous",
+      "Female",
+      "Male"
+    ],
+    "default": "Ambiguous"
+  },
+  "Birth asphyxia": {
+    "type": "categorical",
+    "options": [
+      "Not available",
+      "No record",
+      "No",
+      "Yes"
+    ],
+    "default": "Not available"
+  },
+  "Autopsy shows birth defect (if applicable)": {
+    "type": "categorical",
+    "options": [
+      "No",
+      "Not applicable",
+      "Yes"
+    ],
+    "default": "No"
+  },
+  "Place of birth": {
+    "type": "categorical",
+    "options": [
+      "Home",
+      "Institute"
+    ],
+    "default": "Home"
+  },
+  "Folic acid details (peri-conceptional)": {
+    "type": "categorical",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "default": "Yes"
+  },
+  "H/O serious maternal illness": {
+    "type": "categorical",
+    "options": [
+      "No",
+      "Yes"
+    ],
+    "default": "No"
+  },
+  "H/O radiation exposure (x-ray)": {
+    "type": "categorical",
+    "options": [
+      "No",
+      "Not applicable",
+      "Yes",
+      "-"
+    ],
+    "default": "No"
+  },
+  "H/O substance abuse": {
+    "type": "categorical",
+    "options": [
+      "Not applicable",
+      "-",
+      "Yes",
+      "No"
+    ],
+    "default": "Not applicable"
+  },
+  "Assisted conception IVF/ART": {
+    "type": "categorical",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "default": "Yes"
+  },
+  "History of anomalies in previous pregnancies": {
+    "type": "categorical",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "default": "Yes"
+  },
+  "No. of previous abortion": {
+    "type": "numeric",
+    "default": 2.0
+  },
+  "Birth defects": {
+    "type": "categorical",
+    "options": [
+      "Multiple",
+      "Singular"
+    ],
+    "default": "Multiple"
+  },
+  "White Blood cell count (thousand per microliter)": {
+    "type": "numeric",
+    "default": 7.465448173
+  },
+  "Blood test result": {
+    "type": "categorical",
+    "options": [
+      "slightly abnormal",
+      "inconclusive",
+      "abnormal",
+      "normal"
+    ],
+    "default": "slightly abnormal"
+  },
+  "Symptom 1": {
+    "type": "numeric",
+    "default": 1.0
+  },
+  "Symptom 2": {
+    "type": "numeric",
+    "default": 1.0
+  },
+  "Symptom 3": {
+    "type": "numeric",
+    "default": 1.0
+  },
+  "Symptom 4": {
+    "type": "numeric",
+    "default": 0.0
+  },
+  "Symptom 5": {
+    "type": "numeric",
+    "default": 0.0
+  }
+}
