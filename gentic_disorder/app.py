@@ -1,10 +1,15 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import requests
 import json
 import matplotlib.pyplot as plt
+import os
 
+# -------------------------------
+# Page Configuration
+# -------------------------------
 st.set_page_config(
     page_title="Genetic Disorder Classification",
     page_icon="🧬",
@@ -12,16 +17,41 @@ st.set_page_config(
 )
 
 st.title("🧬 Genetic Disorder Risk Classification System")
+
 st.write(
     "Educational ML prototype for preliminary genetic disorder "
     "category classification. This is not a medical diagnosis."
 )
 
+# -------------------------------
+# File Paths
+# -------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FEATURE_INFO_PATH = os.path.join(BASE_DIR, "feature_info.json")
+
+# IMPORTANT:
+# Replace this URL with your deployed Flask backend URL later.
 API_URL = "http://127.0.0.1:5000/predict"
 
-with open("feature_info.json", "r") as f:
-    feature_info = json.load(f)
+# -------------------------------
+# Load Feature Information
+# -------------------------------
+try:
+    with open(FEATURE_INFO_PATH, "r") as f:
+        feature_info = json.load(f)
+except FileNotFoundError:
+    st.error(
+        "feature_info.json was not found. "
+        "Make sure it is inside the same folder as app.py."
+    )
+    st.stop()
+except json.JSONDecodeError:
+    st.error("feature_info.json contains invalid JSON.")
+    st.stop()
 
+# -------------------------------
+# Patient Information Form
+# -------------------------------
 st.header("Patient Information")
 st.write("Enter the available patient attributes below.")
 
@@ -29,13 +59,16 @@ with st.form("patient_form"):
     patient_data = {}
 
     for feature, info in feature_info.items():
-        if info["type"] == "numeric":
+
+        if info.get("type") == "numeric":
             default = info.get("default", 0.0)
+
             patient_data[feature] = st.number_input(
                 feature,
                 value=float(default),
                 key=feature
             )
+
         else:
             options = info.get("options", [])
 
@@ -51,8 +84,13 @@ with st.form("patient_form"):
                     key=feature
                 )
 
-    submitted = st.form_submit_button("Predict Disorder Category")
+    submitted = st.form_submit_button(
+        "Predict Disorder Category"
+    )
 
+# -------------------------------
+# Prediction
+# -------------------------------
 if submitted:
     try:
         response = requests.post(
@@ -92,30 +130,42 @@ if submitted:
                 )
 
                 st.caption(
-                    "Probabilities are model estimates and may not be "
+                    "These are model estimates and may not represent "
                     "calibrated clinical risk values."
                 )
 
         else:
-            st.error(f"API error ({response.status_code}): {response.text}")
+            st.error(
+                f"API error ({response.status_code}): "
+                f"{response.text}"
+            )
 
     except requests.exceptions.RequestException as e:
         st.error(
-            "Could not connect to the Flask API. Make sure the API is running."
+            "Could not connect to the prediction API. "
+            "Check that the Flask backend is deployed and API_URL "
+            "contains its public URL."
         )
         st.code(str(e))
 
+# -------------------------------
+# Model Performance Information
+# -------------------------------
 st.divider()
 st.subheader("Model Performance")
 
 st.write(
-    "Use the validation metrics and confusion matrix from your "
-    "model evaluation notebook here. The values below should come "
-    "from the same saved Logistic Regression model."
+    "Refer to the validation metrics and confusion matrix "
+    "from the model evaluation notebook."
 )
 
 st.info(
-    "Overall accuracy alone is not enough for classification. "
-    "Compare per-class precision, recall and F1-score, especially "
-    "because the three categories have different sample counts."
+    "Accuracy alone is not enough to evaluate classification. "
+    "Precision, recall, and F1-score for each category should "
+    "also be considered."
+)
+
+st.caption(
+    "This application is an educational prototype, "
+    "not a diagnostic tool."
 )
