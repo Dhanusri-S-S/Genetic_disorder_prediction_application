@@ -1,15 +1,14 @@
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import requests
-import json
-import matplotlib.pyplot as plt
 import os
+import json
+import gzip
+import joblib
+import pandas as pd
+import streamlit as st
 
-# -------------------------------
-# Page Configuration
-# -------------------------------
+# -----------------------------
+# Page configuration
+# -----------------------------
 st.set_page_config(
     page_title="Genetic Disorder Classification",
     page_icon="🧬",
@@ -17,52 +16,88 @@ st.set_page_config(
 )
 
 st.title("🧬 Genetic Disorder Risk Classification System")
-
 st.write(
-    "Educational ML prototype for preliminary genetic disorder "
-    "category classification. This is not a medical diagnosis."
+    "An educational machine learning prototype that predicts "
+    "a genetic disorder category from the entered features."
 )
 
-# -------------------------------
-# File Paths
-# -------------------------------
+st.warning(
+    "This is an educational prototype, not a medical diagnosis. "
+    "Prediction percentages are model estimates, not validated "
+    "medical risk percentages."
+)
+
+# -----------------------------
+# Load files from this folder
+# -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FEATURE_INFO_PATH = os.path.join(BASE_DIR, "feature_info.json")
 
-# IMPORTANT:
-# Replace this URL with your deployed Flask backend URL later.
-API_URL = "http://127.0.0.1:5000/predict"
+MODEL_PATH = os.path.join(
+    BASE_DIR, "genetic_disorder_model.pkl.gz"
+)
+FEATURE_PATH = os.path.join(
+    BASE_DIR, "feature_info.json"
+)
 
-# -------------------------------
-# Load Feature Information
-# -------------------------------
+@st.cache_resource
+def load_model():
+    with gzip.open(MODEL_PATH, "rb") as file:
+        return joblib.load(file)
+
 try:
-    with open(FEATURE_INFO_PATH, "r") as f:
-        feature_info = json.load(f)
-except FileNotFoundError:
-    st.error(
-        "feature_info.json was not found. "
-        "Make sure it is inside the same folder as app.py."
-    )
-    st.stop()
-except json.JSONDecodeError:
-    st.error("feature_info.json contains invalid JSON.")
+    with open(FEATURE_PATH, "r", encoding="utf-8") as file:
+        feature_info = json.load(file)
+
+    model = load_model()
+
+except Exception as error:
+    st.error("Could not load the model or feature information.")
+    st.code(str(error))
     st.stop()
 
-# -------------------------------
-# Patient Information Form
-# -------------------------------
+if not isinstance(feature_info, dict):
+    st.error("feature_info.json must contain a feature dictionary.")
+    st.stop()
+
+# -----------------------------
+# Disorder category names
+# -----------------------------
+class_names = {
+    0: "Mitochondrial genetic inheritance disorders",
+    1: "Multifactorial genetic inheritance disorders",
+    2: "Single-gene inheritance diseases"
+}
+
+def get_class_name(value):
+    # Handle numeric class labels such as 0, 1, 2
+    if value in class_names:
+        return class_names[value]
+
+    # Also handle string labels such as "0", "1", "2"
+    try:
+        numeric_value = int(value)
+        if numeric_value in class_names:
+            return class_names[numeric_value]
+    except (ValueError, TypeError):
+        pass
+
+    # Preserve class names if the model already returns text
+    return str(value)
+
+# -----------------------------
+# Patient information form
+# -----------------------------
 st.header("Patient Information")
-st.write("Enter the available patient attributes below.")
+st.caption("Enter the available information and click Predict.")
 
 with st.form("patient_form"):
     patient_data = {}
 
     for feature, info in feature_info.items():
+        field_type = info.get("type", "categorical")
+        default = info.get("default", 0)
 
-        if info.get("type") == "numeric":
-            default = info.get("default", 0.0)
-
+        if field_type == "numeric":
             patient_data[feature] = st.number_input(
                 feature,
                 value=float(default),
@@ -73,99 +108,173 @@ with st.form("patient_form"):
             options = info.get("options", [])
 
             if options:
+                default_value = info.get("default", options[0])
+                default_index = (
+                    options.index(default_value)
+                    if default_value in options else 0
+                )
+
                 patient_data[feature] = st.selectbox(
                     feature,
                     options=options,
+                    index=default_index,
                     key=feature
                 )
             else:
                 patient_data[feature] = st.text_input(
                     feature,
+                    value=str(default) if default is not None else "",
                     key=feature
                 )
 
     submitted = st.form_submit_button(
-        "Predict Disorder Category"
+        "Predict Disorder Category",
+        type="primary",
+        use_container_width=True
     )
 
-# -------------------------------
-# Prediction
-# -------------------------------
+# -----------------------------
+# Make prediction
+# -----------------------------
 if submitted:
     try:
-        response = requests.post(
-            API_URL,
-            json=patient_data,
-            timeout=60
+        # Use the model's original feature order when available
+        if hasattr(model, "feature_names_in_"):
+            model_features = list(model.feature_names_in_)
+        else:
+            model_features = list(feature_info.keys())
+
+        missing_features = [
+            feature for feature in model_features
+            if feature not in patient_data
+        ]
+
+        if missing_features:
+            st.error(
+                "Some model features are missing from feature_info.json:"
+            )
+            st.write(missing_features)
+            st.stop()
+
+        # Convert categorical values to numeric codes.
+        # This assumes the training notebook used LabelEncoder-style
+        # alphabetical encoding for categorical input features.
+        encoded_data = {}
+
+        for feature in model_features:
+            value = patient_data[feature]
+            info = feature_info.get(feature, {})
+
+            if info.get("type") == "numeric":
+                encoded_data[feature] = float(value)
+
+            else:
+                options = info.get("options", [])
+
+                if options:
+                    sorted_options = sorted(
+                        [str(option) for option in options]
+                    )
+                    encoded_data[feature] = (
+                        sorted_options.index(str(value))
+                    )
+                else:
+                    try:
+                        encoded_data[feature] = float(value)
+                    except (ValueError, TypeError):
+                        st.error(
+                            f"Cannot convert '{feature}' to a numeric "
+                            "value. Its original training encoding is needed."
+                        )
+                        st.stop()
+
+        input_df = pd.DataFrame(
+            [encoded_data],
+            columns=model_features
         )
 
-        if response.status_code == 200:
-            result = response.json()
+        prediction = model.predict(input_df)[0]
+        predicted_category = get_class_name(prediction)
 
-            st.subheader("Prediction Result")
-            st.success(result["predicted_category"])
+        st.divider()
+        st.header("Prediction Result")
+        st.success(f"Predicted category: {predicted_category}")
 
-            probabilities = result.get("probabilities", {})
+        # Show estimated class probabilities if supported
+        if hasattr(model, "predict_proba"):
+            probabilities = model.predict_proba(input_df)[0]
+            model_classes = model.classes_
 
-            if probabilities:
-                st.subheader("Class Probability Estimates")
+            results = []
 
-                probability_df = pd.DataFrame({
-                    "Category": list(probabilities.keys()),
-                    "Probability": list(probabilities.values())
+            for model_class, probability in zip(
+                model_classes, probabilities
+            ):
+                results.append({
+                    "Category": get_class_name(model_class),
+                    "Estimated probability (%)": round(
+                        float(probability) * 100, 2
+                    )
                 })
 
-                probability_df["Percentage"] = (
-                    probability_df["Probability"] * 100
-                )
-
-                st.bar_chart(
-                    probability_df.set_index("Category")["Percentage"]
-                )
-
-                st.dataframe(
-                    probability_df[["Category", "Percentage"]],
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-                st.caption(
-                    "These are model estimates and may not represent "
-                    "calibrated clinical risk values."
-                )
-
-        else:
-            st.error(
-                f"API error ({response.status_code}): "
-                f"{response.text}"
+            results_df = pd.DataFrame(results)
+            results_df = results_df.sort_values(
+                "Estimated probability (%)",
+                ascending=False
             )
 
-    except requests.exceptions.RequestException as e:
-        st.error(
-            "Could not connect to the prediction API. "
-            "Check that the Flask backend is deployed and API_URL "
-            "contains its public URL."
+            top_result = results_df.iloc[0]
+
+            st.subheader("Prediction Probability")
+            st.metric(
+                label="Highest estimated probability",
+                value=f"{top_result['Estimated probability (%)']:.2f}%"
+            )
+
+            st.bar_chart(
+                results_df.set_index("Category")[
+                    "Estimated probability (%)"
+                ]
+            )
+
+            st.dataframe(
+                results_df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.caption(
+                "Probabilities indicate the model's relative estimates "
+                "for its classes. They are not clinically validated "
+                "individual risk percentages."
+            )
+
+        else:
+            st.info(
+                "This model does not provide predict_proba(). "
+                "Only the predicted category can be displayed."
+            )
+
+    except Exception as error:
+        st.error("Prediction failed. Please check the input encoding.")
+        st.code(str(error))
+        st.info(
+            "The categorical encoding must exactly match the encoding "
+            "used when training the model. If this error appears, "
+            "we should use the original training encoders rather than "
+            "guessing the category codes."
         )
-        st.code(str(e))
 
-# -------------------------------
-# Model Performance Information
-# -------------------------------
+# -----------------------------
+# Footer
+# -----------------------------
 st.divider()
-st.subheader("Model Performance")
-
+st.subheader("About this project")
 st.write(
-    "Refer to the validation metrics and confusion matrix "
-    "from the model evaluation notebook."
+    "This application demonstrates machine learning-based "
+    "classification using a trained Extra Trees model."
 )
-
-st.info(
-    "Accuracy alone is not enough to evaluate classification. "
-    "Precision, recall, and F1-score for each category should "
-    "also be considered."
-)
-
 st.caption(
-    "This application is an educational prototype, "
-    "not a diagnostic tool."
+    "For learning and demonstration only. Do not use this application "
+    "to make medical decisions."
 )
